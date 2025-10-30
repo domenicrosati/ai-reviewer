@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DocumentIssueOutput } from './DocumentIssueOutput';
+import {
+  DocumentIssueOutputFromJSON,
+  DocumentIssueOutputFromJSONTyped,
+  DocumentIssueOutputToJSON,
+  DocumentIssueOutputToJSONTyped,
+} from './DocumentIssueOutput';
 import type { DocumentChunkOutput } from './DocumentChunkOutput';
 import {
   DocumentChunkOutputFromJSON,
@@ -20,13 +27,6 @@ import {
   DocumentChunkOutputToJSON,
   DocumentChunkOutputToJSONTyped,
 } from './DocumentChunkOutput';
-import type { DocumentIssue } from './DocumentIssue';
-import {
-  DocumentIssueFromJSON,
-  DocumentIssueFromJSONTyped,
-  DocumentIssueToJSON,
-  DocumentIssueToJSONTyped,
-} from './DocumentIssue';
 import type { FileDocument } from './FileDocument';
 import {
   FileDocumentFromJSON,
@@ -76,6 +76,20 @@ import {
   DocumentSummaryToJSON,
   DocumentSummaryToJSONTyped,
 } from './DocumentSummary';
+import type { AddendumOutput } from './AddendumOutput';
+import {
+  AddendumOutputFromJSON,
+  AddendumOutputFromJSONTyped,
+  AddendumOutputToJSON,
+  AddendumOutputToJSONTyped,
+} from './AddendumOutput';
+import type { BibliographyItemValidationOutput } from './BibliographyItemValidationOutput';
+import {
+  BibliographyItemValidationOutputFromJSON,
+  BibliographyItemValidationOutputFromJSONTyped,
+  BibliographyItemValidationOutputToJSON,
+  BibliographyItemValidationOutputToJSONTyped,
+} from './BibliographyItemValidationOutput';
 
 /**
  *
@@ -115,6 +129,12 @@ export interface ClaimSubstantiatorStateOutput {
   references?: Array<BibliographyItem>;
   /**
    *
+   * @type {Array<BibliographyItemValidationOutput>}
+   * @memberof ClaimSubstantiatorStateOutput
+   */
+  referencesValidated?: Array<BibliographyItemValidationOutput>;
+  /**
+   *
    * @type {Array<DocumentChunkOutput>}
    * @memberof ClaimSubstantiatorStateOutput
    */
@@ -150,11 +170,17 @@ export interface ClaimSubstantiatorStateOutput {
    */
   literatureReview?: LiteratureReviewResponseOutput | null;
   /**
-   * Ranked list of document issues with severity levels
-   * @type {Array<DocumentIssue>}
+   *
+   * @type {AddendumOutput}
    * @memberof ClaimSubstantiatorStateOutput
    */
-  rankedIssues?: Array<DocumentIssue>;
+  addendum?: AddendumOutput | null;
+  /**
+   * Ranked list of document issues with severity levels
+   * @type {Array<DocumentIssueOutput>}
+   * @memberof ClaimSubstantiatorStateOutput
+   */
+  rankedIssues?: Array<DocumentIssueOutput>;
 }
 
 /**
@@ -185,6 +211,10 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
     workflowRunId: json['workflow_run_id'] == null ? undefined : json['workflow_run_id'],
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
+    referencesValidated:
+      json['references_validated'] == null
+        ? undefined
+        : (json['references_validated'] as Array<any>).map(BibliographyItemValidationOutputFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkOutputFromJSON),
     errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
     mainDocumentSummary:
@@ -199,8 +229,11 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
         : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputFromJSON),
     literatureReview:
       json['literature_review'] == null ? undefined : LiteratureReviewResponseOutputFromJSON(json['literature_review']),
+    addendum: json['addendum'] == null ? undefined : AddendumOutputFromJSON(json['addendum']),
     rankedIssues:
-      json['ranked_issues'] == null ? undefined : (json['ranked_issues'] as Array<any>).map(DocumentIssueFromJSON),
+      json['ranked_issues'] == null
+        ? undefined
+        : (json['ranked_issues'] as Array<any>).map(DocumentIssueOutputFromJSON),
   };
 }
 
@@ -224,6 +257,10 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
     workflow_run_id: value['workflowRunId'],
     references:
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
+    references_validated:
+      value['referencesValidated'] == null
+        ? undefined
+        : (value['referencesValidated'] as Array<any>).map(BibliographyItemValidationOutputToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkOutputToJSON),
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
     main_document_summary: DocumentSummaryToJSON(value['mainDocumentSummary']),
@@ -236,7 +273,8 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
         ? undefined
         : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputToJSON),
     literature_review: LiteratureReviewResponseOutputToJSON(value['literatureReview']),
+    addendum: AddendumOutputToJSON(value['addendum']),
     ranked_issues:
-      value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueToJSON),
+      value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueOutputToJSON),
   };
 }

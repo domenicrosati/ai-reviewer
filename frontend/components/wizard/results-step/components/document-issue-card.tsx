@@ -1,7 +1,8 @@
+import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { DocumentIssue, SeverityEnum } from '@/lib/generated-api';
+import { ContextDataOutput, DocumentIssueOutput, SeverityEnum } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import {
   CheckCircleIcon,
@@ -14,8 +15,8 @@ import {
 import { useState } from 'react';
 
 interface DocumentIssueCardProps {
-  issue: DocumentIssue;
-  onSelect: (issue: DocumentIssue) => void;
+  issue: DocumentIssueOutput;
+  onSelect: (issue: DocumentIssueOutput) => void;
 }
 
 const severityColorMap: Record<
@@ -108,7 +109,32 @@ export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
           {isExpanded ? 'Hide details' : 'Show details'}
         </Button>
       </div>
-      {isExpanded && <p className="text-sm text-gray-700">{issue.additionalContext}</p>}
+      {isExpanded && (
+        <>
+          <p className="text-sm text-gray-700">{issue.additionalContext}</p>
+          {issue.contextData && issue.contextData.map((item) => <ContextDataRenderer key={item.label} data={item} />)}
+        </>
+      )}
     </div>
+  );
+}
+
+export interface ContextDataRendererProps {
+  data: ContextDataOutput;
+}
+
+export function ContextDataRenderer({ data }: ContextDataRendererProps) {
+  return (
+    <LabeledValue label={data.label}>
+      {typeof data.value === 'string' && data.value}
+      {typeof data.value === 'boolean' && (data.value ? 'Yes' : 'No')}
+      {typeof data.value === 'object' && Array.isArray(data.value) && (
+        <div className="flex flex-col gap-2">
+          {data.value.map((item) => (
+            <ContextDataRenderer key={item.label} data={item} />
+          ))}
+        </div>
+      )}
+    </LabeledValue>
   );
 }

@@ -1,7 +1,7 @@
 from datetime import date
 from enum import StrEnum
 from operator import add
-from typing import Annotated, Dict, List, Optional
+from typing import Annotated, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -171,6 +171,20 @@ class SeverityEnum(StrEnum):
         }[self]
 
 
+class ContextData(BaseModel):
+    """
+    A recursive data model for storing custom key-value pairs with context.
+
+    The value can be either a string or a list of other ContextData objects,
+    allowing for nested structures of labeled data.
+    """
+
+    label: str = Field(description="The label for this context data entry")
+    value: Union[str, bool, List["ContextData"]] = Field(
+        description="The value, which can be a string or a list of nested ContextData objects"
+    )
+
+
 class DocumentIssue(BaseModel):
     title: str = Field(description="The title of the issue")
     description: str = Field(description="The description of the issue")
@@ -178,6 +192,10 @@ class DocumentIssue(BaseModel):
     additional_context: Optional[str] = Field(
         description="A longer explanation for the description of the issue and/or context of the issue",
         default=None,
+    )
+    context_data: List[ContextData] = Field(
+        description="Custom context data with structured label-value pairs, including more details about the issue and/or context of the issue",
+        default_factory=list,
     )
     chunk_index: Optional[int] = Field(
         description="The index of the chunk that contains the issue", default=None

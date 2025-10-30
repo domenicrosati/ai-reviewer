@@ -6,6 +6,7 @@ from lib.agents.evidence_weighter import EvidenceWeighterRecommendedAction
 from lib.agents.models import ClaimCategory
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
+    ContextData,
     DocumentChunk,
     DocumentIssue,
     SeverityEnum,
@@ -35,10 +36,35 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                 title="Invalid reference",
                 description=f'Possible invalid reference: "{validation.original_reference.text}"',
                 severity=SeverityEnum.HIGH,
-                additional_context=f"Suggested action: {validation.suggested_action}",
                 chunk_index=_find_chunk_index_by_text(
                     state, validation.original_reference.text
                 ),
+                context_data=[
+                    ContextData(
+                        label="Suggested action",
+                        value=validation.suggested_action,
+                    ),
+                ]
+                + [
+                    ContextData(
+                        label=field_validation.category.value.capitalize(),
+                        value=[
+                            ContextData(
+                                label="Issue",
+                                value=field_validation.problem_type.value,
+                            ),
+                            ContextData(
+                                label="Current value",
+                                value=field_validation.current_value,
+                            ),
+                            ContextData(
+                                label="Suggested value",
+                                value=field_validation.suggested_value,
+                            ),
+                        ],
+                    )
+                    for field_validation in validation.bibliography_field_validations
+                ],
             )
             issues.append(issue)
 
@@ -60,10 +86,19 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                     title="Unsupported claim",
                     description=f"Claim '{category.claim}' requires external verification but no citations were found.",
                     severity=SeverityEnum.MEDIUM,
-                    additional_context=f"Rationale: {category.rationale}",
                     chunk_index=category.chunk_index,
                     claim_index=category.claim_index,
                     claim_category=category.claim_category,
+                    context_data=[
+                        ContextData(
+                            label="Rationale",
+                            value=category.rationale,
+                        ),
+                        ContextData(
+                            label="Needs external verification",
+                            value=category.needs_external_verification,
+                        ),
+                    ],
                 )
                 issues.append(issue)
 
@@ -73,33 +108,66 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
             continue
 
         for substantiation in chunk.substantiations:
-            if substantiation.evidence_alignment == EvidenceAlignmentLevel.UNSUPPORTED:
-                issue = DocumentIssue(
-                    title="Unsupported Claim",
-                    description=substantiation.rationale,
-                    severity=SeverityEnum.HIGH,
-                    additional_context=f"Feedback: {substantiation.feedback}",
-                    chunk_index=substantiation.chunk_index,
-                    claim_index=substantiation.claim_index,
-                    claim_category=_find_claim_category(
-                        chunk, substantiation.claim_index
-                    ),
+            if substantiation.evidence_alignment in [
+                EvidenceAlignmentLevel.UNSUPPORTED,
+                EvidenceAlignmentLevel.PARTIALLY_SUPPORTED,
+                EvidenceAlignmentLevel.UNVERIFIABLE,
+            ]:
+                title = (
+                    "Unsupported Claim"
+                    if substantiation.evidence_alignment
+                    == EvidenceAlignmentLevel.UNSUPPORTED
+                    else (
+                        "Partially Supported Claim"
+                        if substantiation.evidence_alignment
+                        == EvidenceAlignmentLevel.PARTIALLY_SUPPORTED
+                        else "Unverifiable Claim"
+                    )
                 )
-                issues.append(issue)
-            elif (
-                substantiation.evidence_alignment
-                == EvidenceAlignmentLevel.PARTIALLY_SUPPORTED
-            ):
                 issue = DocumentIssue(
-                    title="Partially Supported Claim",
+                    title=title,
                     description=substantiation.rationale,
-                    severity=SeverityEnum.MEDIUM,
-                    additional_context=f"Feedback: {substantiation.feedback}",
+                    severity=(
+                        SeverityEnum.HIGH
+                        if substantiation.evidence_alignment
+                        == EvidenceAlignmentLevel.UNSUPPORTED
+                        else SeverityEnum.MEDIUM
+                    ),
                     chunk_index=substantiation.chunk_index,
                     claim_index=substantiation.claim_index,
                     claim_category=_find_claim_category(
                         chunk, substantiation.claim_index
                     ),
+                    context_data=[
+                        ContextData(
+                            label="Evidence alignment",
+                            value=substantiation.evidence_alignment.value,
+                        ),
+                        ContextData(
+                            label="Feedback",
+                            value=substantiation.feedback,
+                        ),
+                    ]
+                    + [
+                        ContextData(
+                            label=f"Evidence source {index + 1}",
+                            value=[
+                                ContextData(
+                                    label="Reference file name",
+                                    value=source.reference_file_name,
+                                ),
+                                ContextData(
+                                    label="Location",
+                                    value=source.location,
+                                ),
+                                ContextData(
+                                    label="Quote",
+                                    value=source.quote,
+                                ),
+                            ],
+                        )
+                        for index, source in enumerate(substantiation.evidence_sources)
+                    ],
                 )
                 issues.append(issue)
 
